@@ -1,0 +1,31 @@
+version: "2.1"
+services:
+  db:
+    image: postgres:alpine
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - "./pgdata:/var/lib/postgresql/data:rw"
+  rabbitmq:
+    image: rabbitmq:alpine
+    env_file:
+      - .env
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_CP_PORT}:15672"
+  api:
+    build: .
+    container_name: testservice_api
+    command: sh -c 'alembic upgrade head && uwsgi --yaml /usr/local/src/uwsgi.yml'
+    env_file:
+      - .env
+    ports:
+      - 8000:8000
+    volumes:
+      - "./migrations/versions/:/usr/local/src/migrations/versions/:rw"
+      - "./:/usr/local/src/:ro"
+    depends_on:
+      db:
+        condition: service_healthy
